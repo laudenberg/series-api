@@ -77,10 +77,8 @@ class SeriesController < ApplicationController
     filename = ""
 
     Tempfile.open "libthetvdb", encoding: 'ascii-8bit' do |f|
-      debugger
       f.write get(url)
       filename = f.path
-      logger.debug(filename)
     end
 
     docs = []
