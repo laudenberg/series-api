@@ -1,6 +1,8 @@
 class SeriesController < ApplicationController
 
   require "open-uri"
+  require "digest/md5"
+  require "zip/zip"
 
   def index
   end
@@ -82,11 +84,9 @@ class SeriesController < ApplicationController
     docs = []
 
     Zip::ZipInputStream::open(filename) do |f|
-
       while entry = f.get_next_entry
         docs.push Nokogiri::XML(f.read) if files.include? entry.name
       end
-
     end
 
     return docs
@@ -101,7 +101,21 @@ class SeriesController < ApplicationController
   end
 
   def get(url)
-    open(url).read
+    @cache_dir = 'tmp/apicache/'
+    @max_age = 1 * 60 * 15
+    hashed_url = Digest::MD5.hexdigest(url)
+    cache_filename = @cache_dir + hashed_url
+
+    Dir.mkdir(@cache_dir) unless File.exists?(@cache_dir)
+
+    if File.exists?(cache_filename)
+      return File.new(cache_filename).read if (Time.now - File.mtime(cache_filename)) < @max_age
+    else
+      api_response = open(url).read
+      File.open(cache_filename,'w+') {|f| f.write(api_response) }
+      return api_response
+    end
+
   end
 
 end
