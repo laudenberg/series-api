@@ -1,6 +1,8 @@
 class SeriesController < ApplicationController
 
   require "open-uri"
+  require "digest/md5"
+  require "zip/zip"
 
   def index
   end
@@ -77,16 +79,15 @@ class SeriesController < ApplicationController
     Tempfile.open "libthetvdb", encoding: 'ascii-8bit' do |f|
       f.write get(url)
       filename = f.path
+      logger.debug(filename)
     end
 
     docs = []
 
     Zip::ZipInputStream::open(filename) do |f|
-
       while entry = f.get_next_entry
         docs.push Nokogiri::XML(f.read) if files.include? entry.name
       end
-
     end
 
     return docs
@@ -101,7 +102,21 @@ class SeriesController < ApplicationController
   end
 
   def get(url)
-    open(url).read
+    @max_age = 1 * 60 * 15
+    @cache_dir = 'tmp/apicache'
+    cache_filename = @cache_dir + url.gsub(host,"")
+    cache_path = File.dirname(cache_filename)
+
+    FileUtils.mkdir_p(cache_path) 
+    
+    if File.exists?(cache_filename)
+      return File.new(cache_filename).read if (Time.now - File.mtime(cache_filename)) < @max_age
+    else
+      api_response = open(url).read
+      File.open(cache_filename,'w+') {|f| f.write(api_response) }
+      return api_response
+    end
+
   end
 
 end
