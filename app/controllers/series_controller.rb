@@ -25,7 +25,7 @@ class SeriesController < ApplicationController
   def show
     filename = ""
     series = {}
-    doc, banners = docs_from_zip("#{host}/api/#{api_key}/series/#{params[:id]}/all/en.zip", "en.xml", "banners.xml")
+    doc, banners = docs_from_zip_url("#{host}/api/#{api_key}/series/#{params[:id]}/all/en.zip", "en.xml", "banners.xml")
 
     series_element = doc.css("Series")
     series[:remote_id] = series_element.css("id").first.content.to_i
@@ -73,23 +73,29 @@ class SeriesController < ApplicationController
 
   private
 
-  def docs_from_zip(url, *files)
-    filename = ""
-
-    Tempfile.open "libthetvdb", encoding: 'ascii-8bit' do |f|
-      f.write get(url)
-      filename = f.path
+  def docs_from_zip_url(url, *files)
+    filename = cache(url)
+    
+    begin
+      docs = docs_from_zip(filename, *files)
+    rescue
+      invalidate(url)
+      cache(url)
+      # Give it a second try. If it fails, fail badly.
+      docs = docs_from_zip(filename, *files)
     end
 
-    docs = []
+    return docs
+  end
 
-    Zip::ZipInputStream::open(filename) do |f|
+  def docs_from_zip(zip, *files)
+    docs = []
+    Zip::ZipInputStream::open(zip) do |f|
       while entry = f.get_next_entry
         docs.push Nokogiri::XML(f.read) if files.include? entry.name
       end
     end
-
-    return docs
+    docs
   end
 
   def host
@@ -100,22 +106,36 @@ class SeriesController < ApplicationController
     "FF8BC00413A5520E"
   end
 
-  def get(url)
-    @max_age = 1 * 60 * 15
-    @cache_dir = 'tmp/apicache'
-    cache_filename = @cache_dir + url.gsub(host,"")
-    cache_path = File.dirname(cache_filename)
+  def max_age
+    1 * 60 * 15
+  end
 
+  def cache_dir
+    'tmp/apicache'
+  end
+
+  def cache(url)
+    logger.debug "caching #{url}"
+    cache_filename = cache_dir + url.gsub(host, "")
+    cache_path = File.dirname(cache_filename)
     FileUtils.mkdir_p(cache_path) 
-    
-    if File.exists?(cache_filename)
-      return File.new(cache_filename).read if (Time.now - File.mtime(cache_filename)) < @max_age
-    else
-      api_response = open(url).read
-      File.open(cache_filename,'w+', encoding: "ascii-8bit") {|f| f.write(api_response) }
-      return api_response
+
+    if !File.exists?(cache_filename) || (Time.now - File.mtime(cache_filename)) > max_age
+      logger.debug "cache miss #{cache_filename}"
+      File.open(cache_filename, 'w+', encoding: "ascii-8bit") {|f| f.write(open(url).read) }
     end
 
+    cache_filename
+  end
+
+  def invalidate(url)
+    logger.debug "invalidating #{url}"
+    cache_filename = cache_dir + url.gsub(host,"")
+    File.unlink(cache_filename) if File.exists?(cache_filename)
+  end
+
+  def get(url)
+    File.read(cache(url))
   end
 
 end
