@@ -79,6 +79,7 @@ class SeriesController < ApplicationController
     Tempfile.open "libthetvdb", encoding: 'ascii-8bit' do |f|
       f.write get(url)
       filename = f.path
+      logger.debug(filename)
     end
 
     docs = []
@@ -101,13 +102,13 @@ class SeriesController < ApplicationController
   end
 
   def get(url)
-    @cache_dir = 'tmp/apicache/'
     @max_age = 1 * 60 * 15
-    hashed_url = Digest::MD5.hexdigest(url)
-    cache_filename = @cache_dir + hashed_url
+    @cache_dir = 'tmp/apicache'
+    cache_filename = @cache_dir + url.gsub(host,"")
+    cache_path = File.dirname(cache_filename)
 
-    Dir.mkdir(@cache_dir) unless File.exists?(@cache_dir)
-
+    FileUtils.mkdir_p(cache_path) 
+    
     if File.exists?(cache_filename)
       return File.new(cache_filename).read if (Time.now - File.mtime(cache_filename)) < @max_age
     else
