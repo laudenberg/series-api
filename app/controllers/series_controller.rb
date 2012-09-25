@@ -77,6 +77,7 @@ class SeriesController < ApplicationController
     filename = ""
 
     Tempfile.open "libthetvdb", encoding: 'ascii-8bit' do |f|
+      debugger
       f.write get(url)
       filename = f.path
       logger.debug(filename)
@@ -113,7 +114,7 @@ class SeriesController < ApplicationController
       return File.new(cache_filename).read if (Time.now - File.mtime(cache_filename)) < @max_age
     else
       api_response = open(url).read
-      File.open(cache_filename,'w+') {|f| f.write(api_response) }
+      File.open(cache_filename,'w+', encoding: "ascii-8bit") {|f| f.write(api_response) }
       return api_response
     end
 
