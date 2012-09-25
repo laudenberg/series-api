@@ -20,10 +20,12 @@ http://series.c3w.de/series/83462/5/1?callback=func
 
 The follwing endpoints are available:
 
-
 ```
 http://series.c3w.de/series/search/$SERIES_NAME ( [Example](http://series.c3w.de/series/search/Castle) )
 http://series.c3w.de/series/$SERIES_ID ( [Example](http://series.c3w.de/series/83462) )
 http://series.c3w.de/series/$SERIES_ID/$SEASON ( [Example](http://series.c3w.de/series/83462/5) )
 http://series.c3w.de/series/$SERIES_ID/$SEASON/$EPSIODE ( [Example](http://series.c3w.de/series/83462/5/1) )
+
+http://series.c3w.de/series/$SERIES_ID/$SEASON?since=1336341599
+Only shows Episodes aired after 1336341599 (06.05.2012).
 ```
