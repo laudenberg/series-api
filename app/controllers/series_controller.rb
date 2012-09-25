@@ -48,25 +48,31 @@ class SeriesController < ApplicationController
       episode[:image] = episode_element.css("filename").first.content
       episode[:last_updated] = episode_element.css("lastupdated").first.content.to_i
 
-      since = params[:since].to_i
-
       if episode[:date] != ''
+        
         episode[:unixdate] = Time.parse(episode[:date]).to_i
+        since = params[:since].to_i
+
         if Time.parse(episode[:date]).to_i > since
           series[:episodes].push episode
         end
+      
       end
 
     end
 
     if !params[:episode]
       series[:banners] = []
+      
       banners.css("Banner").each do |banner|
+        
         if banner.css("BannerType").first.content == "series" &&
           banner.css("BannerType2").first.content == "graphical"
           series[:banners].push banner.css("BannerPath").first.content
         end
+
       end
+    
     end
 
     if params["season"].present?
