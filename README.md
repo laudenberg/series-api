@@ -2,7 +2,7 @@ series-api
 ==========
 
 ## About
-This is a public API wrapper for thetvdb.com, which re-routes and re-organizes the thetvdb.com to a more sane structure.
+This is a public API wrapper for thetvdb.com, which re-routes and re-organizes the thetvdb.com to a saner structure.
 
 ## Output
 
